@@ -28,9 +28,12 @@ export default function DetectionRulesExplorer() {
       try {
         setLoading(true);
         
+        // Use basePath-aware paths
+        const basePath = process.env.NODE_ENV === 'production' ? '/detection-rules-explorer' : '';
+        
         const [rulesResponse, indexResponse] = await Promise.all([
-          fetch('/data/rules.json'),
-          fetch('/data/index.json')
+          fetch(`${basePath}/data/rules.json`),
+          fetch(`${basePath}/data/index.json`)
         ]);
 
         if (!rulesResponse.ok || !indexResponse.ok) {
