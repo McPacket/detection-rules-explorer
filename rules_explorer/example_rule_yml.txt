@@ -1,0 +1,113 @@
+# Example Detection Rule
+# File: rules/windows/execution/suspicious_powershell_encoded.yml
+
+id: rule-2024-001
+name: Suspicious PowerShell Execution with Encoded Commands
+description: |
+  Detects PowerShell execution with encoded commands (-EncodedCommand or -enc parameter).
+  Attackers often use base64 encoding to obfuscate malicious PowerShell commands and evade
+  detection. This rule identifies PowerShell processes launched with encoded parameters,
+  which may indicate malicious activity such as payload delivery, persistence mechanisms,
+  or lateral movement attempts.
+
+# Rule metadata
+author: Security Team
+created: 2024-01-15
+updated: 2024-10-19
+version: 1.0
+
+# Classification
+severity: high
+type: query
+domain: endpoint
+language: kuery
+
+# MITRE ATT&CK Framework mapping
+tactics:
+  - execution
+  - defense_evasion
+techniques:
+  - T1059.001  # Command and Scripting Interpreter: PowerShell
+  - T1027      # Obfuscated Files or Information
+
+# Environment details
+os:
+  - windows
+
+# Detection details
+data_sources:
+  - process
+  - command_line
+  - windows_event_logs
+
+# Use cases
+use_cases:
+  - threat_detection
+  - malware_detection
+  - persistence_hunting
+  - lateral_movement
+
+# Detection query (example in KQL/Kuery format)
+query: |
+  process where event.type == "start" and
+  process.name : ("powershell.exe", "pwsh.exe") and
+  process.command_line : (
+    "*-encodedcommand*",
+    "*-enc*",
+    "*-e *",
+    "*-en*"
+  ) and
+  not process.parent.name : "explorer.exe"
+
+# False positive guidance
+false_positives:
+  - Legitimate administrative scripts that use encoded commands
+  - Software deployment tools (SCCM, PDQ Deploy)
+  - Monitoring and management agents
+  - Automated backup solutions
+
+# Investigation steps
+investigation_guide: |
+  1. Examine the parent process that spawned PowerShell
+  2. Decode the base64 command to understand its intent
+  3. Check if the process was spawned by a known legitimate application
+  4. Review network connections made during/after PowerShell execution
+  5. Check for file creation or modification events
+  6. Correlate with user login events and location
+
+# Response actions
+response_actions:
+  - Isolate the affected endpoint if malicious activity is confirmed
+  - Collect PowerShell transcript logs and command history
+  - Analyze decoded commands for IOCs
+  - Check for persistence mechanisms (scheduled tasks, registry)
+  - Review recent authentication events for the affected user
+
+# References
+references:
+  - https://attack.mitre.org/techniques/T1059/001/
+  - https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_powershell_exe
+
+# Risk scoring
+risk_score: 73
+
+# Tags for additional categorization
+tags:
+  - powershell
+  - encoded_command
+  - obfuscation
+  - windows
+  - execution
+
+# Rule configuration
+enabled: true
+max_signals: 100
+throttle: 5m
+
+# Alert configuration
+alert:
+  notify:
+    - soc_team
+    - incident_response
+  priority: P2
+  sla_response: 30m
